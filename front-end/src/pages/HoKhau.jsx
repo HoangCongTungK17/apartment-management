@@ -23,28 +23,34 @@ const HouseholdManagementForm = () => {
 
     // API functions
 // Fetch data from API
-  useEffect(() => {
-    const fetchHoKhauList = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const response = await fetch("http://localhost:8080/api/hokhaus");
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
+   const fetchHoKhauList = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch("http://localhost:8080/api/hokhaus");
+            if (!response.ok) {
+                throw new Error('Failed to fetch data');
+            }
+            const data = await response.json();
+            console.log("Ho Khau Data:", data);
+            setHoKhauList(data);
+            return data; // Return data for use in Promise.all
+        } catch (error) {
+            console.error("Error fetching ho khau list:", error);
+            setError('Không thể tải dữ liệu hộ khẩu. Sử dụng dữ liệu mẫu.');
+            // Fallback data
+            const fallbackData = [
+                { id: 'HK001', chuHo: 'Nguyen Van A', diaChi: '123 Main St', soThanhVien: 4 },
+                { id: 'HK002', chuHo: 'Tran Thi B', diaChi: '456 Second St', soThanhVien: 2 },
+                { id: 'HK003', chuHo: 'Le Van C', diaChi: '789 Third St', soThanhVien: 3 },
+                { id: 'HK004', chuHo: 'Pham Thi D', diaChi: '321 Fourth St', soThanhVien: 1 }
+            ];
+            setHoKhauList(fallbackData);
+            return fallbackData;
+        } finally {
+            setLoading(false);
         }
-        const data = await response.json();
-        console.log("Ho Khau Data:", data);
-        setHoKhauList(data);
-      } catch (error) {
-        console.error("Error fetching ho khau list:", error);
-        setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
-      } finally {
-        setLoading(false);
-      }
     };
-
-    fetchHoKhauList();
-  }, []);
 
 
     const fetchResidents = async () => {
@@ -165,7 +171,7 @@ const HouseholdManagementForm = () => {
         const loadData = async () => {
             try {
                 const [householdsData, residentsData] = await Promise.all([
-                    fetchHouseholds(),
+                    fetchHoKhauList(),
                     fetchResidents()
                 ]);
                 calculateStatistics(householdsData, residentsData);
