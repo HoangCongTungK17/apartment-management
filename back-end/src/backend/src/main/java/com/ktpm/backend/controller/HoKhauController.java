@@ -18,12 +18,12 @@ public class HoKhauController {
     @GetMapping
     public List<HoKhauDTO> danhSachHoKhau(@RequestParam(required = false) String search) {
         List<HoKhauDTO> danhSachHo;
-//        if (search != null && !search.trim().isEmpty()) {
-//            danhSachHo = hoKhauService.timKiemHoKhau(search);
-//        } else {
-//            danhSachHo = hoKhauService.getDanhSachHoKhau();
-//        }
-//        return danhSachHo.toString();
+        // if (search != null && !search.trim().isEmpty()) {
+        // danhSachHo = hoKhauService.timKiemHoKhau(search);
+        // } else {
+        // danhSachHo = hoKhauService.getDanhSachHoKhau();
+        // }
+        // return danhSachHo.toString();
 
         danhSachHo = hoKhauService.getDanhSachHoKhau();
         return danhSachHo;
@@ -36,6 +36,7 @@ public class HoKhauController {
 
     @PostMapping("/add")
     public void addHoKhau(@RequestBody HoKhau hoKhau) {
+        hoKhau.setMaHoKhau(null);
         hoKhauService.themHoKhau(hoKhau);
     }
 

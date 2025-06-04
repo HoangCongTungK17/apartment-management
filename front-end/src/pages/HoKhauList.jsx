@@ -29,25 +29,25 @@ const HoKhauManager = () => {
   }, [error, successMessage]);
 
   // Fetch data from API
-  useEffect(() => {
-    const fetchHoKhauList = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const response = await fetch("http://localhost:8080/api/hokhaus");
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const data = await response.json();
-        setHoKhauList(data);
-      } catch (error) {
-        console.error("Error fetching ho khau list:", error);
-        setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
-      } finally {
-        setLoading(false);
+  const fetchHoKhauList = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch("http://localhost:8080/api/hokhaus");
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
       }
-    };
+      const data = await response.json();
+      setHoKhauList(data);
+    } catch (error) {
+      console.error("Error fetching ho khau list:", error);
+      setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchHoKhauList();
   }, []);
 
@@ -105,12 +105,32 @@ const HoKhauManager = () => {
     }
   };
 
+  // Helper function to safely parse JSON response
+  const safeJsonParse = async (response) => {
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      return null; // Empty response
+    }
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.warn('Response is not valid JSON:', text);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validate required fields
-    if (!formData.tenChuHo || !formData.maHoKhau || !formData.diaChi || !formData.soDienThoai) {
+    if (!formData.tenChuHo || !formData.diaChi || !formData.soDienThoai) {
       setError('Vui lòng điền đầy đủ các trường bắt buộc.');
+      return;
+    }
+
+    // Validate phone number
+    if (formData.soDienThoai.length < 10 || formData.soDienThoai.length > 11) {
+      setError('Số điện thoại phải có 10-11 chữ số.');
       return;
     }
 
@@ -120,43 +140,71 @@ const HoKhauManager = () => {
 
       if (editingItem) {
         // Update existing item
-        const response = await fetch(`http://localhost:8080/api/hokhaus/edit/${formData.maHoKhau}`, {
+        const updateData = {
+          maHoKhau: editingItem.maHoKhau,
+          tenChuHo: formData.tenChuHo,
+          diaChi: formData.diaChi,
+          soDienThoai: parseInt(formData.soDienThoai),
+          soNhanKhau: formData.soNhanKhau
+        };
+        
+        const response = await fetch(`http://localhost:8080/api/hokhaus/edit/${editingItem.maHoKhau}`, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(updateData)
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `HTTP Error: ${response.status}`);
+          const errorData = await safeJsonParse(response) || {};
+          throw new Error(errorData.message || `HTTP Error: ${response.status} - ${response.statusText}`);
         }
 
-        const updatedItem = await response.json();
+        const updatedItem = await safeJsonParse(response);
         
-        setHoKhauList(prevList => prevList.map(item =>
-          item.maHoKhau === editingItem.maHoKhau ? updatedItem : item
-        ));
+        if (updatedItem) {
+          setHoKhauList(prevList => prevList.map(item =>
+            item.maHoKhau === editingItem.maHoKhau ? updatedItem : item
+          ));
+        } else {
+          // If no response data, refetch the list to ensure data consistency
+          await fetchHoKhauList();
+        }
+        
         setSuccessMessage('Cập nhật thông tin hộ khẩu thành công!');
       } else {
         // Add new item
+        const newData = {
+          tenChuHo: formData.tenChuHo,
+          diaChi: formData.diaChi,
+          soDienThoai: parseInt(formData.soDienThoai),
+          soNhanKhau: formData.soNhanKhau
+        };
+        
         const response = await fetch('http://localhost:8080/api/hokhaus/add', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(newData)
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          const errorData = await safeJsonParse(response) || {};
           throw new Error(errorData.message || `HTTP Error: ${response.status}`);
         }
 
-        const newItem = await response.json();
+        const newItem = await safeJsonParse(response);
         
-        setHoKhauList(prevList => [...prevList, newItem]);
+        if (newItem) {
+          setHoKhauList(prevList => [...prevList, newItem]);
+        } else {
+          // If server doesn't return the created item, refetch the entire list
+          // This ensures we get the latest data even if server doesn't return JSON
+          await fetchHoKhauList();
+        }
+        
         setSuccessMessage('Thêm hộ khẩu mới thành công!');
       }
       
@@ -175,7 +223,9 @@ const HoKhauManager = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ 
       ...prev, 
-      [name]: name === 'soNhanKhau' ? parseInt(value) || 1 : value 
+      [name]: name === 'soNhanKhau' ? parseInt(value) || 1 : 
+              name === 'soDienThoai' ? value.replace(/\D/g, '') : // Chỉ cho phép số
+              value 
     }));
   };
 
@@ -321,105 +371,106 @@ const HoKhauManager = () => {
             </div>
 
             <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mã hộ khẩu *
-                  </label>
-                  <input
-                    type="text"
-                    name="maHoKhau"
-                    value={formData.maHoKhau}
-                    onChange={handleInputChange}
-                    placeholder="VD: HK001"
-                    disabled={loading || !!editingItem}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                    required
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mã hộ khẩu
+                    </label>
+                    <input
+                      type="text"
+                      name="maHoKhau"
+                      value={editingItem ? editingItem.maHoKhau : 'Tự động tạo'}
+                      disabled={true}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
+                      placeholder="Sẽ được tự động tạo"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tên chủ hộ *
-                  </label>
-                  <input
-                    type="text"
-                    name="tenChuHo"
-                    value={formData.tenChuHo}
-                    onChange={handleInputChange}
-                    placeholder="VD: Nguyễn Văn A"
-                    disabled={loading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                    required
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tên chủ hộ *
+                    </label>
+                    <input
+                      type="text"
+                      name="tenChuHo"
+                      value={formData.tenChuHo}
+                      onChange={handleInputChange}
+                      placeholder="VD: Nguyễn Văn A"
+                      disabled={loading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                      required
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Địa chỉ *
-                  </label>
-                  <textarea
-                    name="diaChi"
-                    value={formData.diaChi}
-                    onChange={handleInputChange}
-                    placeholder="VD: 123 Đường ABC, Phường XYZ, Quận 1, TP.HCM"
-                    rows="3"
-                    disabled={loading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-100"
-                    required
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Địa chỉ *
+                    </label>
+                    <textarea
+                      name="diaChi"
+                      value={formData.diaChi}
+                      onChange={handleInputChange}
+                      placeholder="VD: 123 Đường ABC, Phường XYZ, Quận 1, TP.HCM"
+                      rows="3"
+                      disabled={loading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-100"
+                      required
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Số điện thoại *
-                  </label>
-                  <input
-                    type="tel"
-                    name="soDienThoai"
-                    value={formData.soDienThoai}
-                    onChange={handleInputChange}
-                    placeholder="VD: 0909123456"
-                    disabled={loading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                    required
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Số điện thoại *
+                    </label>
+                    <input
+                      type="tel"
+                      name="soDienThoai"
+                      value={formData.soDienThoai}
+                      onChange={handleInputChange}
+                      placeholder="VD: 0909123456"
+                      maxLength="11"
+                      pattern="[0-9]*"
+                      disabled={loading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                      required
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Số nhân khẩu
-                  </label>
-                  <input
-                    type="number"
-                    name="soNhanKhau"
-                    value={formData.soNhanKhau}
-                    onChange={handleInputChange}
-                    min="1"
-                    max="20"
-                    disabled={loading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Số nhân khẩu
+                    </label>
+                    <input
+                      type="number"
+                      name="soNhanKhau"
+                      value={formData.soNhanKhau}
+                      onChange={handleInputChange}
+                      min="1"
+                      max="20"
+                      disabled={loading}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                    />
+                  </div>
 
-                <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    disabled={loading}
-                    className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 rounded-lg transition-colors"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg flex items-center gap-2 transition-colors"
-                  >
-                    <Save className="w-4 h-4" />
-                    {loading ? 'Đang xử lý...' : (editingItem ? 'Cập nhật' : 'Thêm mới')}
-                  </button>
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      disabled={loading}
+                      className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 rounded-lg transition-colors"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      onClick={handleSubmit}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg flex items-center gap-2 transition-colors"
+                    >
+                      <Save className="w-4 h-4" />
+                      {loading ? 'Đang xử lý...' : (editingItem ? 'Cập nhật' : 'Thêm mới')}
+                    </button>
+                  </div>
                 </div>
-              </div>
             </div>
         </div>
       )}

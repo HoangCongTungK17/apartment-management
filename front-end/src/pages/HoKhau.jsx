@@ -96,10 +96,10 @@ const HouseholdManagementForm = () => {
             console.error('Error fetching history:', err);
             // Fallback data for demo
             const fallbackData = [
-                { id: 1, ngay: '2024-05-15', hoTen: 'Nguyễn Van A', loaiThayDoi: 'Thêm mới', moTa: 'Thêm nhân khẩu mới', nguoiThucHien: 'Admin' },
+                { id: 1, ngay: '2024-05-15', hoTen: 'Nguyen Van A', loaiThayDoi: 'Thêm mới', moTa: 'Thêm nhân khẩu mới', nguoiThucHien: 'Admin' },
                 { id: 2, ngay: '2024-05-10', hoTen: 'Tran Thi B', loaiThayDoi: 'Cập nhật', moTa: 'Thay đổi địa chỉ', nguoiThucHien: 'Admin' },
                 { id: 3, ngay: '2024-05-08', hoTen: 'Le Van C', loaiThayDoi: 'Tạm trú', moTa: 'Đăng ký tạm trú', nguoiThucHien: 'Admin' },
-                { id: 4, ngay: '2024-05-05', hoTen: 'Pham Thị E', loaiThayDoi: 'Tạm vắng', moTa: 'Đăng ký tạm vắng', nguoiThucHien: 'Admin' }
+                { id: 4, ngay: '2024-05-05', hoTen: 'Pham Van E', loaiThayDoi: 'Tạm vắng', moTa: 'Đăng ký tạm vắng', nguoiThucHien: 'Admin' }
             ];
             setHistoryData(fallbackData);
             return fallbackData;
@@ -152,19 +152,23 @@ const HouseholdManagementForm = () => {
 
     // Search and filter functions
     const handleSearch = (keyword) => {
-        setSearchKeyword(keyword);
-        if (!keyword.trim()) {
-            setFilteredData([]);
-            return;
-        }
+    setSearchKeyword(keyword);
+    if (!keyword.trim()) {
+        setFilteredData([]);
+        return;
+    }
 
-        const filtered = nhanKhauList.filter(nhanKhauList => 
-            nhanKhauList.hoTen.toLowerCase().includes(keyword.toLowerCase()) ||
-            nhanKhauList.soCMND.includes(keyword) ||
-            nhanKhauList.maHoKhau.toLowerCase().includes(keyword.toLowerCase())
-        );
-        setFilteredData(filtered);
+    const lowerKeyword = keyword.toLowerCase();
+
+    const filtered = nhanKhauList.filter(nhanKhau =>
+        (nhanKhau.hoTen || '').toLowerCase().includes(lowerKeyword) ||
+        (nhanKhau.soCMND || '').toString().includes(keyword) ||
+        (nhanKhau.maHoKhau || '').toString().toLowerCase().includes(lowerKeyword)
+    );
+
+    setFilteredData(filtered);
     };
+
 
     // Load data on component mount
     useEffect(() => {
