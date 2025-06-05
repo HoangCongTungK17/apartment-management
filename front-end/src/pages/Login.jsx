@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Eye, EyeOff, Building2, Shield, Users, Clock, Phone, Mail, MapPin } from "lucide-react";
@@ -14,20 +14,20 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  if (user) {
-    navigate("/");
-    return null;
-  }
+   useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const handleLogin = async () => {
     setIsLoading(true);
     setError("");
 
-    // Simulate loading time
     setTimeout(() => {
       const result = login(username, password);
       if (result.success) {
-        navigate("/"); // Redirect về dashboard
+        // navigate("/") sẽ được gọi bởi useEffect khi user thay đổi
       } else {
         setError(result.message);
       }

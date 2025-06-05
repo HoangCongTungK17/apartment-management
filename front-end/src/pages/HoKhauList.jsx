@@ -77,33 +77,33 @@ const HoKhauManager = () => {
     setSuccessMessage('');
   };
 
-  const handleDelete = async (maHoKhau) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa hộ khẩu này?')) {
-      return;
-    }
+  // const handleDelete = async (maHoKhau) => {
+  //   if (!window.confirm('Bạn có chắc chắn muốn xóa hộ khẩu này?')) {
+  //     return;
+  //   }
 
-    try {
-      setLoading(true);
-      setError('');
+  //   try {
+  //     setLoading(true);
+  //     setError('');
 
-      const response = await fetch(`http://localhost:8080/api/hokhaus/${maHoKhau}`, {
-        method: 'DELETE',
-      });
+  //     const response = await fetch(`http://localhost:8080/api/hokhaus/${maHoKhau}`, {
+  //       method: 'DELETE',
+  //     });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP Error: ${response.status}`);
-      }
+  //     if (!response.ok) {
+  //       const errorData = await response.json().catch(() => ({}));
+  //       throw new Error(errorData.message || `HTTP Error: ${response.status}`);
+  //     }
 
-      setHoKhauList(prevList => prevList.filter(item => item.maHoKhau !== maHoKhau));
-      setSuccessMessage('Xóa hộ khẩu thành công!');
-    } catch (error) {
-      console.error("Error deleting ho khau:", error);
-      setError(`Không thể xóa hộ khẩu: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     setHoKhauList(prevList => prevList.filter(item => item.maHoKhau !== maHoKhau));
+  //     setSuccessMessage('Xóa hộ khẩu thành công!');
+  //   } catch (error) {
+  //     console.error("Error deleting ho khau:", error);
+  //     setError(`Không thể xóa hộ khẩu: ${error.message}`);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // Helper function to safely parse JSON response
   const safeJsonParse = async (response) => {
@@ -328,14 +328,14 @@ const HoKhauManager = () => {
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button
+                          {/* <button
                             onClick={() => handleDelete(hoKhau.maHoKhau)}
                             disabled={loading}
                             className="p-2 text-red-600 hover:bg-red-50 disabled:text-red-300 rounded-lg transition-colors"
                             title="Xóa"
                           >
                             <Trash2 className="w-4 h-4" />
-                          </button>
+                          </button> */}
                         </div>
                       </td>
                     </tr>

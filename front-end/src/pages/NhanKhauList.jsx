@@ -184,11 +184,18 @@ const NhanKhauManager = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const filteredList = nhanKhauList.filter(item =>
-    item.hoTen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.soCMND?.includes(searchTerm) ||
-    item.maHoKhau?.toLowerCase().includes(searchTerm.toLowerCase())
+const filteredList = nhanKhauList.filter((item) => {
+  const hoTen = String(item.hoTen || '');
+  const soCMND = String(item.soCMND || '');
+  const maHoKhau = String(item.maHoKhau || '');
+  const search = searchTerm.toLowerCase();
+
+  return (
+    hoTen.toLowerCase().includes(search) ||
+    soCMND.includes(searchTerm) || 
+    maHoKhau.toLowerCase().includes(search)
   );
+});
 
   return (
     <div className="min-h-screen bg-gray-50">
